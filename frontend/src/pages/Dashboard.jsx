@@ -70,143 +70,151 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   // Fetch dashboard summary
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get('/api/dashboard/summary');
-      
-      setDashboardData({
-        totalEmployees: response.data.totalEmployees || 0,
-        presentToday: response.data.presentToday || 0,
-        pendingLeaves: response.data.pendingLeaves || 0,
-        missPunchRequests: response.data.missPunchRequests || 0,
-        upcomingHolidays: response.data.upcomingHolidays || 0
-      });
+// ✅ Clean and dynamic Dashboard Data Fetcher
+const fetchDashboardData = async () => {
+  setLoading(true);
+  try {
+    const response = await axios.get('http://localhost:5000/api/admin/dashboard/summary');
+    const data = response.data;
 
-      setAttendanceTrend(response.data.attendanceTrend || generateDummyTrend());
-      setRecentLeaves(response.data.recentLeaves || []);
-      setRecentMissPunch(response.data.recentMissPunch || []);
-      
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      // Use dummy data for development
-      setDashboardData({
-        totalEmployees: 45,
-        presentToday: 38,
-        pendingLeaves: 5,
-        missPunchRequests: 3,
-        upcomingHolidays: 2
-      });
-      setAttendanceTrend(generateDummyTrend());
-      setRecentLeaves(generateDummyLeaves());
-      setRecentMissPunch(generateDummyMissPunch());
-    } finally {
-      setLoading(false);
+    // ✅ Update main dashboard cards
+    setDashboardData({
+      totalEmployees: data.totalEmployees || 0,
+      presentToday: data.presentToday || 0,
+      pendingLeaves: data.pendingLeaves || 0,
+      onLeave: data.onLeave || 0,
+    });
+
+    // ✅ Attendance trend (use from backend if available)
+    if (data.attendanceTrend && data.attendanceTrend.length > 0) {
+      setAttendanceTrend(data.attendanceTrend);
+    } else {
+      console.warn('No attendance trend data found.');
+      setAttendanceTrend([]); // or generateDummyTrend() if you still want fallback
     }
-  };
 
-  // Generate dummy attendance trend data
-  const generateDummyTrend = () => {
-    const trendData = [];
-    for (let i = 29; i >= 0; i--) {
-      const dateShort = format(subDays(new Date(), i), 'MMM dd');
-      trendData.push({
-        date: dateShort,
-        present: Math.floor(Math.random() * 10) + 30,
-        absent: Math.floor(Math.random() * 5),
-        late: Math.floor(Math.random() * 8)
-      });
-    }
-    return trendData;
-  };
+    // Optional (if your backend returns these later)
+    setRecentLeaves(data.recentLeaves || []);
+    setRecentMissPunch(data.recentMissPunch || []);
 
-  // Generate dummy leave data
-  const generateDummyLeaves = () => {
-    return [
-      {
-        id: 1,
-        employee_name: "John Smith",
-        leave_type: "sick",
-        start_date: "2025-01-25",
-        end_date: "2025-01-26",
-        status: "pending"
-      },
-      {
-        id: 2,
-        employee_name: "Sarah Johnson",
-        leave_type: "casual",
-        start_date: "2025-01-28",
-        end_date: "2025-01-30",
-        status: "approved"
-      },
-      {
-        id: 3,
-        employee_name: "Michael Brown",
-        leave_type: "annual",
-        start_date: "2025-02-01",
-        end_date: "2025-02-05",
-        status: "pending"
-      },
-      {
-        id: 4,
-        employee_name: "Emily Davis",
-        leave_type: "sick",
-        start_date: "2025-01-22",
-        end_date: "2025-01-22",
-        status: "rejected"
-      },
-      {
-        id: 5,
-        employee_name: "David Wilson",
-        leave_type: "casual",
-        start_date: "2025-01-20",
-        end_date: "2025-01-21",
-        status: "approved"
-      }
-    ];
-  };
+    setLastRefresh(new Date());
+  } catch (error) {
+    console.error('❌ Error fetching dashboard data:', error);
+    // Optional fallback during dev
+    setDashboardData({
+      totalEmployees: 0,
+      presentToday: 0,
+      pendingLeaves: 0,
+      onLeave: 0,
+    });
+    setAttendanceTrend([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // Generate dummy miss punch data
-  const generateDummyMissPunch = () => {
-    return [
-      {
-        id: 1,
-        employee_name: "Robert Taylor",
-        punch_type: "check_in",
-        date: "2025-01-20",
-        status: "pending"
-      },
-      {
-        id: 2,
-        employee_name: "Lisa Anderson",
-        punch_type: "check_out",
-        date: "2025-01-19",
-        status: "approved"
-      },
-      {
-        id: 3,
-        employee_name: "Jennifer Martinez",
-        punch_type: "both",
-        date: "2025-01-18",
-        status: "pending"
-      },
-      {
-        id: 4,
-        employee_name: "Chris Evans",
-        punch_type: "check_in",
-        date: "2025-01-17",
-        status: "pending"
-      },
-      {
-        id: 5,
-        employee_name: "Anna White",
-        punch_type: "check_out",
-        date: "2025-01-16",
-        status: "rejected"
-      }
-    ];
-  };
+
+//   // Generate dummy attendance trend data
+//   const generateDummyTrend = () => {
+//     const trendData = [];
+//     for (let i = 29; i >= 0; i--) {
+//       const dateShort = format(subDays(new Date(), i), 'MMM dd');
+//       trendData.push({
+//         date: dateShort,
+//         present: Math.floor(Math.random() * 10) + 30,
+//         absent: Math.floor(Math.random() * 5),
+//         late: Math.floor(Math.random() * 8)
+//       });
+//     }
+//     return trendData;
+//   };
+
+//   // Generate dummy leave data
+//   const generateDummyLeaves = () => {
+//     return [
+//       {
+//         id: 1,
+//         employee_name: "John Smith",
+//         leave_type: "sick",
+//         start_date: "2025-01-25",
+//         end_date: "2025-01-26",
+//         status: "pending"
+//       },
+//       {
+//         id: 2,
+//         employee_name: "Sarah Johnson",
+//         leave_type: "casual",
+//         start_date: "2025-01-28",
+//         end_date: "2025-01-30",
+//         status: "approved"
+//       },
+//       {
+//         id: 3,
+//         employee_name: "Michael Brown",
+//         leave_type: "annual",
+//         start_date: "2025-02-01",
+//         end_date: "2025-02-05",
+//         status: "pending"
+//       },
+//       {
+//         id: 4,
+//         employee_name: "Emily Davis",
+//         leave_type: "sick",
+//         start_date: "2025-01-22",
+//         end_date: "2025-01-22",
+//         status: "rejected"
+//       },
+//       {
+//         id: 5,
+//         employee_name: "David Wilson",
+//         leave_type: "casual",
+//         start_date: "2025-01-20",
+//         end_date: "2025-01-21",
+//         status: "approved"
+//       }
+//     ];
+//   };
+
+//   // Generate dummy miss punch data
+//   const generateDummyMissPunch = () => {
+//     return [
+//       {
+//         id: 1,
+//         employee_name: "Robert Taylor",
+//         punch_type: "check_in",
+//         date: "2025-01-20",
+//         status: "pending"
+//       },
+//       {
+//         id: 2,
+//         employee_name: "Lisa Anderson",
+//         punch_type: "check_out",
+//         date: "2025-01-19",
+//         status: "approved"
+//       },
+//       {
+//         id: 3,
+//         employee_name: "Jennifer Martinez",
+//         punch_type: "both",
+//         date: "2025-01-18",
+//         status: "pending"
+//       },
+//       {
+//         id: 4,
+//         employee_name: "Chris Evans",
+//         punch_type: "check_in",
+//         date: "2025-01-17",
+//         status: "pending"
+//       },
+//       {
+//         id: 5,
+//         employee_name: "Anna White",
+//         punch_type: "check_out",
+//         date: "2025-01-16",
+//         status: "rejected"
+//       }
+//     ];
+//   };
 
   // Auto-refresh every 2 minutes
   useEffect(() => {

@@ -129,12 +129,51 @@ export const deleteHoliday = async (req, res) => {
   }
 };
 
-// 📊 DASHBOARD SUMMARY
+
+import { subDays, format } from "date-fns";
+
 export const getDashboardSummary = async (req, res) => {
-  res.json({
-    totalEmployees: 10,
-    presentToday: 7,
-    onLeave: 2,
-    pendingLeaves: 1,
-  });
+  try {
+    // Fetch overall summary counts
+    const [totalEmployees] = await db.query("SELECT COUNT(*) AS total FROM employees");
+    const [presentToday] = await db.query("SELECT COUNT(*) AS present FROM attendance WHERE date = CURDATE() AND status = 'present'");
+    const [pendingLeaves] = await db.query("SELECT COUNT(*) AS pending FROM leave_requests WHERE status = 'pending'");
+    const [onLeave] = await db.query("SELECT COUNT(*) AS onLeave FROM leave_requests WHERE CURDATE() BETWEEN from_date AND to_date");
+
+    // Fetch last 30 days attendance trend
+    const [trendRows] = await db.query(`
+      SELECT 
+        DATE_FORMAT(date, '%b %d') AS date,
+        SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) AS present,
+        SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) AS absent,
+        SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) AS late
+      FROM attendance
+      WHERE date >= CURDATE() - INTERVAL 30 DAY
+      GROUP BY date
+      ORDER BY date ASC;
+    `);
+
+    // Fill in missing dates (in case no data exists for a day)
+    const trendData = [];
+    for (let i = 29; i >= 0; i--) {
+      const dateKey = format(subDays(new Date(), i), 'MMM dd');
+      const dayData = trendRows.find(row => row.date === dateKey);
+      trendData.push(
+        dayData || { date: dateKey, present: 0, absent: 0, late: 0 }
+      );
+    }
+
+    // Send everything together
+    res.json({
+      totalEmployees: totalEmployees[0].total,
+      presentToday: presentToday[0].present,
+      pendingLeaves: pendingLeaves[0].pending,
+      onLeave: onLeave[0].onLeave,
+      attendanceTrend: trendData,
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard summary:", error);
+    res.status(500).json({ error: "Server error" });
+  }
 };
+

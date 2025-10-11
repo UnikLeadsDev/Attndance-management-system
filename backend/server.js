@@ -30,11 +30,15 @@ app.get("/", (req, res) => {
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import adminpayrollRoutes from "./routes/adminpayrollRoutes.js";
 
 // // Use routes
  app.use("/attendance", attendanceRoutes);
  app.use("/leave", leaveRoutes);
  app.use("/holidays", holidayRoutes);
+ app.use("/api/admin", adminRoutes);
+app.use("/api/admin/adminpayroll", adminpayrollRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

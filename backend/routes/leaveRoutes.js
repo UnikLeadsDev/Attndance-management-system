@@ -93,28 +93,6 @@ router.get("/:employee_id", async (req, res) => {
   }
 });
 
-// --------------------
-// Approve / Reject Leave (Admin Only)
-// --------------------
-router.patch("/approve/:leave_id", async (req, res) => {
-  try {
-    const { leave_id } = req.params;
-    const { status } = req.body; // "Approved" or "Rejected"
 
-    if (!["Approved", "Rejected"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
-    }
-
-    await db.query(
-      "UPDATE leave_requests SET status = ? WHERE id = ?",
-      [status, leave_id]
-    );
-
-    res.json({ message: `Leave request ${status.toLowerCase()} successfully` });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
-  }
-});
 
 export default router;

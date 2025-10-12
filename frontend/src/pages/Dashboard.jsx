@@ -412,7 +412,7 @@ const fetchDashboardData = async () => {
                         {leave.leave_type.charAt(0).toUpperCase() + leave.leave_type.slice(1)} Leave
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {format(new Date(leave.start_date), 'MMM dd')} - {format(new Date(leave.end_date), 'MMM dd')}
+                        {format(new Date(leave.from_date), 'MMM dd')} - {format(new Date(leave.to_date), 'MMM dd')}
                       </p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${

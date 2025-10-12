@@ -39,8 +39,8 @@ const EmployeesPage = () => {
     phone: '',
     department: '',
     role: '',
-    joinDate: '',
-    salary: '',
+    joining_date: '',
+    base_salary: '',
     address: '',
     status: 'active'
   });
@@ -245,37 +245,37 @@ const EmployeesPage = () => {
   };
 
   // Handle form submit
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      if (modalMode === 'add') {
-        const response = await axios.post('/api/employees', formData);
-        setEmployees([...employees, { ...formData, id: Date.now() }]);
-        showToast('Employee added successfully!', 'success');
-      } else {
-        await axios.put(`/api/employees/${selectedEmployee.id}`, formData);
-        setEmployees(employees.map(emp => 
-          emp.id === selectedEmployee.id ? { ...emp, ...formData } : emp
-        ));
-        showToast('Employee updated successfully!', 'success');
+ const handleFormSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch(
+      modalMode === 'add'
+        ? 'http://localhost:5000/api/admin/employees'   // add route
+        : `http://localhost:5000/api/admin/employees/${formData.id}`,  // update route
+      {
+        method: modalMode === 'add' ? 'POST' : 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       }
+    );
+
+    const data = await response.json();
+    console.log('✅ Response:', data);
+
+    if (response.ok) {
+      alert(modalMode === 'add' ? 'Employee added!' : 'Employee updated!');
       setShowModal(false);
-    } catch (err) {
-      // Mock success for demo
-      if (modalMode === 'add') {
-        const newEmployee = { ...formData, id: Date.now() };
-        setEmployees([...employees, newEmployee]);
-        showToast('Employee added successfully!', 'success');
-      } else {
-        setEmployees(employees.map(emp => 
-          emp.id === selectedEmployee.id ? { ...emp, ...formData } : emp
-        ));
-        showToast('Employee updated successfully!', 'success');
-      }
-      setShowModal(false);
+    } else {
+      console.error('❌ Error from backend:', data);
     }
-  };
+  } catch (error) {
+    console.error('❌ Network error:', error);
+  }
+};
+
 
   // Handle status toggle
   const handleStatusToggle = async (employee) => {
@@ -625,8 +625,8 @@ const EmployeesPage = () => {
                   <input
                     type="date"
                     required
-                    value={formData.joinDate}
-                    onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
+                    value={formData.joining_date}
+                    onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                   />
                 </div>
@@ -638,8 +638,8 @@ const EmployeesPage = () => {
                   <input
                     type="number"
                     required
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                    value={formData.base_salary}
+                    onChange={(e) => setFormData({ ...formData, base_salary: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
                     placeholder="50000"
                   />

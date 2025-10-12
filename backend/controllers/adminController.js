@@ -12,17 +12,60 @@ export const getAllEmployees = async (req, res) => {
 };
 
 export const addEmployee = async (req, res) => {
-  const { employee_id, name, email, department, role, password_hash } = req.body;
   try {
-    await db.query(
-      "INSERT INTO employees (employee_id, name, email, department, role, password_hash) VALUES (?,?,?,?,?,?)",
-      [employee_id, name, email, department, role, password_hash]
+    console.log('Request Body:', req.body); // Debugging line
+    const { name, email, phone, department, role, joining_date, base_salary, status, address } = req.body;
+
+    // 🧩 Validation
+    if (!name || !email || !phone || !department || !role || !joining_date || !base_salary) {
+      return res.status(400).json({ message: 'All required fields must be filled!' });
+    }
+
+    // 🧮 Step 1: Get latest employee_id
+    const [rows] = await db.query(
+      "SELECT employee_id FROM employees ORDER BY id DESC LIMIT 1"
     );
-    res.status(201).json({ message: "Employee added successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    let newEmployeeId = "EMP001"; // default for first record
+    if (rows.length > 0) {
+      const lastId = rows[0].employee_id; // e.g., 'EMP007'
+      const numericPart = parseInt(lastId.replace('EMP', '')); // → 7
+      const nextNum = numericPart + 1;
+      newEmployeeId = `EMP${String(nextNum).padStart(3, '0')}`; // → EMP008
+    }
+
+    // 🧾 Step 2: Insert new record
+    const query = `
+      INSERT INTO employees 
+      (employee_id, name, email, phone, department, role, joining_date, base_salary, status, address)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      newEmployeeId,
+      name,
+      email,
+      phone,
+      department,
+      role,
+      joining_date,
+      base_salary,
+      status || 'Active',
+      address || null
+    ];
+
+    await db.query(query, values);
+
+    res.status(201).json({
+      message: '✅ Employee added successfully',
+      employee_id: newEmployeeId
+    });
+  } catch (err) {
+    console.error('❌ Error adding employee:', err);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 export const getEmployeeDetails = async (req, res) => {
   const { id } = req.params;
@@ -134,15 +177,26 @@ import { subDays, format } from "date-fns";
 
 export const getDashboardSummary = async (req, res) => {
   try {
-    // Fetch overall summary counts
-    const [totalEmployees] = await db.query("SELECT COUNT(*) AS total FROM employees");
-    const [presentToday] = await db.query("SELECT COUNT(*) AS present FROM attendance WHERE date = CURDATE() AND status = 'present'");
-    const [pendingLeaves] = await db.query("SELECT COUNT(*) AS pending FROM leave_requests WHERE status = 'pending'");
-    const [onLeave] = await db.query("SELECT COUNT(*) AS onLeave FROM leave_requests WHERE CURDATE() BETWEEN from_date AND to_date");
+    // 1️⃣ Summary Counts
+    const [totalEmployees] = await db.query(
+      "SELECT COUNT(*) AS total FROM employees"
+    );
 
-    // Fetch last 30 days attendance trend
+    const [presentToday] = await db.query(
+      "SELECT COUNT(*) AS present FROM attendance WHERE date = CURDATE() AND status = 'present'"
+    );
+
+    const [pendingLeaves] = await db.query(
+      "SELECT COUNT(*) AS pending FROM leave_requests WHERE status = 'pending'"
+    );
+
+    const [onLeave] = await db.query(
+      "SELECT COUNT(*) AS onLeave FROM leave_requests WHERE CURDATE() BETWEEN from_date AND to_date"
+    );
+
+    // 2️⃣ Attendance Trend (Last 30 days)
     const [trendRows] = await db.query(`
-      SELECT 
+      SELECT
         DATE_FORMAT(date, '%b %d') AS date,
         SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) AS present,
         SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) AS absent,
@@ -153,23 +207,50 @@ export const getDashboardSummary = async (req, res) => {
       ORDER BY date ASC;
     `);
 
-    // Fill in missing dates (in case no data exists for a day)
     const trendData = [];
     for (let i = 29; i >= 0; i--) {
       const dateKey = format(subDays(new Date(), i), 'MMM dd');
       const dayData = trendRows.find(row => row.date === dateKey);
-      trendData.push(
-        dayData || { date: dateKey, present: 0, absent: 0, late: 0 }
-      );
+      trendData.push(dayData || { date: dateKey, present: 0, absent: 0, late: 0 });
     }
 
-    // Send everything together
+    // 3️⃣ Recent Leaves (last 5 requests)
+    const [recentLeaves] = await db.query(`
+                    SELECT 
+            lr.id, 
+            e.name AS employeeName, 
+            lr.from_date, 
+            lr.to_date, 
+            lr.status,
+            lr.leave_type
+          FROM leave_requests lr
+          JOIN employees e ON lr.employee_id = e.employee_id
+          ORDER BY lr.applied_on DESC
+          LIMIT 5;
+
+
+    `);
+
+    // 4️⃣ Recent Miss Punch (attendance with missing punch)
+    const [recentMissPunch] = await db.query(`
+      SELECT 
+        a.id, e.name AS employeeName, a.date, a.status
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.status = 'miss_punch'
+      ORDER BY a.date DESC
+      LIMIT 5;
+    `);
+
+    // 5️⃣ Final Response
     res.json({
       totalEmployees: totalEmployees[0].total,
       presentToday: presentToday[0].present,
       pendingLeaves: pendingLeaves[0].pending,
       onLeave: onLeave[0].onLeave,
       attendanceTrend: trendData,
+      recentLeaves: recentLeaves || [],
+      recentMissPunch: recentMissPunch || [],
     });
   } catch (error) {
     console.error("Error fetching dashboard summary:", error);

@@ -32,6 +32,7 @@ import leaveRoutes from "./routes/leaveRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import adminpayrollRoutes from "./routes/adminpayrollRoutes.js";
+import customerRoutes from "./routes/customerDetailRoutes.js";
 
 // // Use routes
  app.use("/attendance", attendanceRoutes);
@@ -39,6 +40,7 @@ import adminpayrollRoutes from "./routes/adminpayrollRoutes.js";
  app.use("/holidays", holidayRoutes);
  app.use("/api/admin", adminRoutes);
 app.use("/api/admin/adminpayroll", adminpayrollRoutes);
+app.use("/api/customer",customerRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

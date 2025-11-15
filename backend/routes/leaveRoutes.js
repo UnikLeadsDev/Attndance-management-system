@@ -95,43 +95,43 @@ router.get("/:employee_id", async (req, res) => {
   }
 });
 
-// ======================================================
+// ====================================================== 
 //  MISS PUNCH REQUEST ROUTES
 // ======================================================
 
-// Apply Miss Punch Request
-router.post("/misspunch/apply", upload.array("attachments", 3), async (req, res) => {
-  try {
-    const { emp_id, attendance_date, punch_type, reason } = req.body;
+  // Apply Miss Punch Request
+  router.post("/misspunch/apply", upload.array("attachments", 3), async (req, res) => {
+    try {
+      const { emp_id, attendance_date, punch_type, reason } = req.body;
 
-    // Insert into miss_punch_requests
-    const [result] = await db.query(
-      `INSERT INTO miss_punch_requests 
-       (emp_id, attendance_date, punch_type, reason) 
-       VALUES (?, ?, ?, ?)`,
-      [emp_id, attendance_date, punch_type, reason]
-    );
+      // Insert into miss_punch_requests
+      const [result] = await db.query(
+        `INSERT INTO miss_punch_requests 
+        (emp_id, attendance_date, punch_type, reason) 
+        VALUES (?, ?, ?, ?)`,
+        [emp_id, attendance_date, punch_type, reason]
+      );
 
-    const missPunchId = result.insertId;
+      const missPunchId = result.insertId;
 
-    // Insert attachments
-    if (req.files?.length > 0) {
-      for (const file of req.files) {
-        await db.query(
-          `INSERT INTO attachments 
-           (request_type, request_id, file_name, file_type, file_path, uploaded_by)
-           VALUES ('miss_punch', ?, ?, ?, ?, ?)`,
-          [missPunchId, file.originalname, file.mimetype, file.path, emp_id]
-        );
+      // Insert attachments
+      if (req.files?.length > 0) {
+        for (const file of req.files) {
+          await db.query(
+            `INSERT INTO attachments 
+            (request_type, request_id, file_name, file_type, file_path, uploaded_by)
+            VALUES ('miss_punch', ?, ?, ?, ?, ?)`,
+            [missPunchId, file.originalname, file.mimetype, file.path, emp_id]
+          );
+        }
       }
-    }
 
-    res.json({ status: "pending", message: "Miss Punch request submitted for approval" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
-  }
-});
+      res.json({ status: "pending", message: "Miss Punch request submitted for approval" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server Error" });
+    }
+  });
 
 // Get Miss Punch Requests for Employee
 router.get("/misspunch/:emp_id", async (req, res) => {

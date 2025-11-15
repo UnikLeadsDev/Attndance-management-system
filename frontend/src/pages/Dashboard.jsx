@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { format, subDays } from "date-fns";
+import PresentTodayModal from "../components/PresentTodayModal.jsx";
+
 import {
   Users,
   UserCheck,
@@ -68,6 +70,10 @@ export default function Dashboard() {
   const [recentMissPunch, setRecentMissPunch] = useState([]);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [presentEmployees, setPresentEmployees] = useState([]);
+const [showModal, setShowModal] = useState(false);
+const [loadingModal, setLoadingModal] = useState(false);
+
 
   // Fetch dashboard summary
 // ✅ Clean and dynamic Dashboard Data Fetcher
@@ -232,6 +238,22 @@ const fetchDashboardData = async () => {
     fetchDashboardData();
   };
 
+  const fetchPresentEmployees = async () => {
+  setLoadingModal(true);
+  try {
+    const response = await axios.get('http://localhost:5000/admin/attendance/daily-summary');
+    console.log("Present Employees Data:", response.data);
+    setPresentEmployees(response.data.present_employees || []);
+  } catch (error) {
+    console.error("Error fetching present employees:", error);
+    setPresentEmployees([]);
+  } finally {
+    setLoadingModal(false);
+    setShowModal(true); // Open modal after fetching data
+  }
+};
+
+
   if (loading && attendanceTrend.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 flex items-center justify-center">
@@ -282,7 +304,9 @@ const fetchDashboardData = async () => {
             icon={UserCheck}
             color="bg-gradient-to-br from-green-500 to-green-600"
             tooltip="Employees who checked in today"
+            onClick={fetchPresentEmployees} // 🔹 fetch data when card is clicked
           />
+
           <StatCard
             title="Pending Leaves"
             value={dashboardData.pendingLeaves}
@@ -465,6 +489,18 @@ const fetchDashboardData = async () => {
           </div>
         </div>
       </div>
+            <PresentTodayModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        data={presentEmployees}
+        loading={loadingModal}
+      />
     </div>
+
+   
+
+
+
+
   );
 }
